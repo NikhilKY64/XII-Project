@@ -1,0 +1,8 @@
+## Exam Monitoring System incomplete
+
+
+## Install Dependencies
+
+```bash
+pip install flask opencv-python mediapipe
+```
