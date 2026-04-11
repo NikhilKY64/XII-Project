@@ -16,7 +16,7 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS students(
         id int AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(50),
         age INT,
-        attendence ENUM('present', 'absent') NOT NULL
+        attendance ENUM('present', 'absent') NOT NULL
 )""")
 
 while True:
@@ -35,23 +35,23 @@ while True:
     if option == 1:
         name = input("Enter your name: ")
         age = int(input("Enter your age: "))
-        attendence = input("Enter present or absent: ")
-        cursor.execute("INSERT INTO students (name, age, attendence) VALUES (%s,%s,%s)",(name, age, attendence))
+        attendance = input("Enter present or absent: ")
+        cursor.execute("INSERT INTO students (name, age, attendance) VALUES (%s,%s,%s)",(name, age, attendance))
         conn.commit()
         print('Data inserted successfully.')
 
     elif option == 2:
         name = input("Enter your name: ")
         age = int(input("Enter your age: "))
-        attendence = input("Enter present or absent: ")
-        cursor.execute("UPDATE students SET age=%s, attendence=%s WHERE name=%s", (age, attendence, name))
+        attendance = input("Enter present or absent: ")
+        cursor.execute("UPDATE students SET age=%s, attendance=%s WHERE name=%s", (age, attendance, name))
         conn.commit()
         print("Data updated successfully.")
 
     elif option == 3:
         name = input("Enter your name: ")
         age = int(input("Enter your age: "))
-        attendence = input("Enter present or absent: ")
+        attendance = input("Enter present or absent: ")
         cursor.execute("DELETE FROM students WHERE name=%s", (name,))
         conn.commit()
         print("Data deleted successfully.")
@@ -63,7 +63,7 @@ while True:
         data = cursor.fetchall()
         if data:
             print("Data found!")
-            print(tabulate(data, headers=["id", "name", "age", "attendence"], tablefmt="rounded_grid"))
+            print(tabulate(data, headers=["id", "name", "age", "attendance"], tablefmt="rounded_grid"))
             # table format options: "plain", "grid", "heavy_grid", "double_grid", "rounded_grid", etc.
 
         else:
