@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proctor — Classroom Attendance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0a0f;
+    --surface:  #111118;
+    --card:     #16161f;
+    --border:   #1f1f2e;
+    --border2:  #2a2a3d;
+    --text:     #e8e8f0;
+    --muted:    #5a5a72;
+    --muted2:   #3a3a52;
+    --accent:   #6c63ff;
+    --accent2:  #9d97ff;
+    --green:    #22c55e;
+    --red:      #ef4444;
+    --yellow:   #f59e0b;
+    --cyan:     #22d3ee;
+    --radius:   12px;
+    --radius-sm:8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    z-index: 10;
+  }
+
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 1px;
+    font-weight: 400;
+  }
+
+  .sidebar-nav {
+    padding: 16px 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nav-section {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 12px 8px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 13.5px;
+    font-weight: 400;
+    color: var(--muted);
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    position: relative;
+  }
+
+  .nav-item:hover { background: var(--border); color: var(--text); }
+
+  .nav-item.active {
+    background: rgba(108, 99, 255, 0.15);
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 3px; height: 18px;
+    background: var(--accent);
+    border-radius: 0 3px 3px 0;
+  }
+
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--red);
+    color: white;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 99px;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  .nav-badge.green { background: var(--green); }
+
+  /* Status chip */
+  .session-chip {
+    margin: 0 12px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+
+  .session-chip .chip-label { color: var(--muted); font-size: 10px; margin-bottom: 4px; }
+  .session-chip .chip-value { font-weight: 500; font-size: 12px; }
+
+  .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted2);
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── Main Content ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .topbar {
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+
+  .page-title {
+    font-size: 14px;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 5px 12px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .stat-pill span { color: var(--text); font-weight: 600; font-family: 'DM Mono', monospace; }
+
+  .pages { flex: 1; overflow: hidden; }
+
+  .page { display: none; height: 100%; overflow-y: auto; padding: 24px; }
+  .page.active { display: block; }
+
+  /* ── Monitor Page ── */
+  .monitor-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+    height: 100%;
+  }
+
+  .feed-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .card-header .actions { margin-left: auto; display: flex; gap: 6px; }
+
+  #videoFeed {
+    width: 100%;
+    flex: 1;
+    object-fit: cover;
+    display: block;
+    min-height: 300px;
+  }
+
+  .feed-footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .feed-counter { font-family: 'DM Mono', monospace; }
+  .feed-counter span { color: var(--cyan); font-size: 18px; font-weight: 600; vertical-align: middle; }
+
+  .right-panel { display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+
+  .session-control-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+
+  .session-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-start { background: var(--green); color: #0a1a0a; }
+  .btn-start:hover { filter: brightness(1.1); }
+  .btn-end { background: var(--red); color: white; }
+  .btn-end:hover { filter: brightness(1.1); }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { filter: brightness(1.15); }
+  .btn-secondary { background: var(--border2); color: var(--text); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .btn-danger:hover { background: rgba(239,68,68,0.25); }
+  .btn-sm { padding: 6px 12px; font-size: 11.5px; border-radius: 6px; }
+
+  .session-name-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    margin-bottom: 8px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .session-name-input:focus { border-color: var(--accent); }
+
+  .log-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .log-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .log-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    font-size: 12px;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+
+  .log-item.known { background: rgba(34,197,94,0.08); }
+  .log-item.unknown { background: rgba(239,68,68,0.08); }
+
+  .promote-panel {
+    margin-top: 12px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 12px;
+    display: none;
+  }
+
+  .promote-panel.open {
+    display: block;
+  }
+
+  .promote-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .promote-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: var(--card);
+    cursor: pointer;
+  }
+
+  .promote-item:hover {
+    border-color: var(--accent);
+  }
+
+  .train-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .train-card {
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .train-card img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  .train-card .meta {
+    font-size: 11px;
+    color: var(--muted);
+    word-break: break-all;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .toggle-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle-pill.active {
+    border-color: var(--accent);
+    color: var(--text);
+    background: rgba(59,130,246,0.12);
+  }
+
+  .log-avatar {
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .log-avatar.known { background: rgba(34,197,94,0.2); color: var(--green); }
+  .log-avatar.unknown { background: rgba(239,68,68,0.2); color: var(--red); }
+  .log-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .log-name { font-weight: 500; flex: 1; }
+  .log-id { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+  .log-time { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* ── Register Page ── */
+  .register-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 900px;
+  }
+
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
+  .form-group { margin-bottom: 16px; }
+
+  .form-label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-input:focus { border-color: var(--accent); }
+
+  .reg-preview-wrap {
+    position: relative;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .reg-preview-wrap #regFeed {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+
+  .roi-box {
+    position: absolute;
+    border: 2px solid #22c55e;
+    border-radius: 10px;
+    background: transparent;
+    box-shadow: none;
+    cursor: move;
+    z-index: 2;
+    pointer-events: auto;
+  }
+
+  .roi-handle {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 14px;
+    height: 14px;
+    border-right: 3px solid #22c55e;
+    border-bottom: 3px solid #22c55e;
+    border-radius: 2px;
+    cursor: nwse-resize;
+  }
+
+  .roi-label {
+    position: absolute;
+    top: -26px;
+    left: 0;
+    font-size: 11px;
+    color: #d1fae5;
+    background: rgba(0,0,0,0.55);
+    padding: 3px 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+
+  .lookup-group {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 10px;
+  }
+
+  .lookup-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .lookup-row .form-input { flex: 1; }
+
+  .lookup-results {
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    max-height: 140px;
+    overflow: auto;
+    display: none;
+  }
+
+  .lookup-item {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border2);
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .lookup-item:last-child { border-bottom: none; }
+  .lookup-item:hover { background: rgba(59,130,246,0.08); }
+
+  .mode-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .mode-pill {
+    flex: 1;
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    padding: 8px 10px;
+    font-size: 12px;
+    text-align: center;
+    color: var(--muted);
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .mode-pill.active {
+    border-color: var(--accent);
+    color: var(--text);
+    background: rgba(59,130,246,0.12);
+  }
+
+  .mode-pill.secondary {
+    opacity: 0.85;
+  }
+
+  .mode-pill.secondary.active {
+    border-color: var(--border2);
+    color: var(--text);
+    background: var(--surface);
+  }
+
+  .capture-preview {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  #regFeed {
+    width: 100%;
+    display: block;
+    border-radius: var(--radius-sm);
+  }
+
+  .progress-bar-wrap {
+    background: var(--surface);
+    border-radius: 99px;
+    height: 6px;
+    margin: 12px 0 8px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent), var(--cyan));
+    transition: width 0.3s ease;
+  }
+
+  /* ── Students Page ── */
+  .students-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  .student-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    transition: border-color 0.15s;
+  }
+
+  .student-card:hover { border-color: var(--border2); }
+
+  .student-avatar {
+    width: 64px; height: 64px;
+    border-radius: 12px;
+    background: var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    overflow: hidden;
+    color: var(--accent2);
+  }
+
+  .student-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .student-name {
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .student-id {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .student-date { font-size: 10px; color: var(--muted); text-align: center; }
+
+  .student-del {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    border: none;
+    background: transparent;
+    color: var(--muted2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    opacity: 0;
+    transition: all 0.15s;
+  }
+
+  .student-card:hover .student-del { opacity: 1; }
+  .student-del:hover { background: rgba(239,68,68,0.15); color: var(--red); }
+
+  /* ── Unknown Page ── */
+  .unknown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  .unknown-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.15s;
+    position: relative;
+  }
+
+  .unknown-card:hover { border-color: var(--red); }
+  .unknown-card.train-mode { border-color: var(--accent2); }
+  .unknown-card.selected { border-color: var(--green); box-shadow: inset 0 0 0 1px rgba(34,197,94,0.25); }
+
+  .unknown-check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: rgba(10,10,15,0.8);
+    border: 1px solid rgba(255,255,255,0.18);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+
+  .unknown-check input {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--green);
+    cursor: pointer;
+  }
+
+  .unknown-train-toolbar {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(108,99,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .unknown-train-summary {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .unknown-img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+    background: var(--border2);
+  }
+
+  .unknown-info {
+    padding: 8px;
+  }
+
+  .unknown-filename {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .unknown-actions { display: flex; gap: 4px; }
+  .unknown-actions button { flex: 1; }
+
+  /* ── Sessions Page ── */
+  .sessions-list { display: flex; flex-direction: column; gap: 8px; max-width: 760px; }
+
+  .session-row {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .session-row:hover { border-color: var(--border2); }
+  .session-row.active-session { border-color: var(--green); }
+
+  .session-row-name { font-weight: 600; font-size: 14px; }
+  .session-row-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .session-row-stats { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+
+  .stat-block { text-align: right; }
+  .stat-block .val { font-size: 20px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .stat-block .lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-block .val.green { color: var(--green); }
+  .stat-block .val.red { color: var(--red); }
+
+  /* ── Settings Page ── */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 700px; }
+
+  .setting-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .setting-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .setting-desc { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+
+  .setting-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .setting-input:focus { border-color: var(--accent); }
+
+  /* ── Modal ── */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    place-items: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-backdrop.open { display: grid; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    padding: 28px;
+    width: 400px;
+    animation: modalIn 0.2s ease;
+  }
+
+  @keyframes modalIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+
+  .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+  .modal-actions button { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  /* ── Toast ── */
+  .toast-container {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 200;
+  }
+
+  .toast {
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 220px;
+    animation: toastIn 0.25s ease;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+  .toast.success { border-color: var(--green); }
+  .toast.error   { border-color: var(--red); }
+  .toast.info    { border-color: var(--accent); }
+
+  /* ── Page header ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .page-heading { font-size: 20px; font-weight: 600; }
+  .page-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .page-header-actions { display: flex; gap: 8px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+  /* ── Btn base ── */
+  button { cursor: pointer; font-family: 'DM Sans', sans-serif; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .empty-icon { font-size: 40px; opacity: 0.4; }
+
+  /* Detail modal wide */
+  .modal.wide { width: 600px; max-height: 80vh; overflow-y: auto; }
+  .attendance-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+  .attendance-table th { padding: 8px 10px; text-align: left; color: var(--muted); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  .attendance-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  .present-badge { background: rgba(34,197,94,0.15); color: var(--green); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .absent-badge  { background: rgba(239,68,68,0.15);  color: var(--red);   padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-badge">
+      <div class="logo-icon">🎓</div>
+      <div>
+        <div class="logo-text">Proctor</div>
+        <div class="logo-sub">Attendance System</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Monitor</div>
+    <button class="nav-item active" onclick="showPage('monitor')">
+      <span class="nav-icon">📡</span> Live Monitor
+    </button>
+
+    <div class="nav-section">Manage</div>
+    <button class="nav-item" onclick="showPage('register')">
+      <span class="nav-icon">➕</span> Register Student
+    </button>
+    <button class="nav-item" onclick="showPage('students')">
+      <span class="nav-icon">👥</span> Students
+      <span class="nav-badge green" id="studentCountBadge">0</span>
+    </button>
+    <button class="nav-item" onclick="showPage('unknown')">
+      <span class="nav-icon">❓</span> Unknown Faces
+      <span class="nav-badge" id="unknownBadge" style="display:none">0</span>
+    </button>
+
+    <div class="nav-section">Reports</div>
+    <button class="nav-item" onclick="showPage('sessions')">
+      <span class="nav-icon">📋</span> Sessions
+    </button>
+    <button class="nav-item" onclick="showPage('settings')">
+      <span class="nav-icon">⚙️</span> Settings
+    </button>
+  </nav>
+
+  <div class="session-chip">
+    <div class="chip-label">Current Session</div>
+    <div class="chip-value" id="sidebarSession">
+      <span class="dot"></span>No session
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="topbarTitle">Live Monitor</div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary btn-sm" onclick="openTrainFromUnknowns()">🧠 Train from Unknowns</button>
+      <div class="stat-pill">👤 Students: <span id="topStudents">0</span></div>
+      <div class="stat-pill">👁 Faces: <span id="topFaces">0</span></div>
+      <div class="stat-pill">❓ Unknown: <span id="topUnknown">0</span></div>
+    </div>
+  </div>
+
+  <div class="pages">
+
+    <!-- ── Monitor ── -->
+    <div class="page active" id="page-monitor">
+      <div class="monitor-grid" style="height:calc(100vh - 104px);">
+        <div class="feed-card">
+          <div class="card-header">
+            <span class="dot active"></span>
+            LIVE FEED
+          </div>
+          <img id="videoFeed" src="/video_feed" alt="Camera feed">
+          <div class="feed-footer">
+            <div class="feed-counter"><span id="faceCount">0</span> faces detected</div>
+            <div class="toggle-row" style="margin-left:auto; margin-right:12px;">
+              <label class="toggle-pill" id="unknownRegisterToggle" onclick="toggleUnknownRegister()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleUnknownRegister();}">
+                <span id="unknownRegisterDot">●</span>
+                <span id="unknownRegisterText">Unknown register on</span>
+              </label>
+            </div>
+            <div style="font-family:'DM Mono',monospace;" id="clockEl"></div>
+          </div>
+        </div>
+
+        <div class="right-panel">
+          <!-- Session control -->
+          <div class="session-control-card">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Session Control</div>
+            <div id="sessionStartUI">
+              <input class="session-name-input" id="sessionNameInput" placeholder="Class name (e.g. Physics 101)" />
+              <button class="session-btn btn-start" onclick="startSession()">▶ Start Session</button>
+            </div>
+            <div id="sessionActiveUI" style="display:none">
+              <div style="font-size:12px;color:var(--green);margin-bottom:8px;">
+                <span class="dot active"></span>
+                <span id="activeSessionName"></span>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:10px;" id="sessionDuration"></div>
+              <button class="session-btn btn-end" onclick="endSession()">⏹ End Session</button>
+            </div>
+          </div>
+
+          <!-- Detection log -->
+          <div class="log-card">
+            <div class="card-header">
+              Detection Log
+              <div class="actions">
+                <button class="btn btn-secondary btn-sm" onclick="clearLog()">Clear</button>
+              </div>
+            </div>
+            <div class="log-list" id="logList">
+              <div class="empty-state" style="padding:30px 10px;">
+                <div class="empty-icon">👁</div>
+                <div>Detections appear here</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Register ── -->
+    <div class="page" id="page-register">
+      <div class="page-header">
+        <div><div class="page-heading">Register Student</div><div class="page-sub">Capture face samples for recognition</div></div>
+      </div>
+      <div class="register-layout">
+        <div class="form-card">
+          <div class="form-group">
+            <label class="form-label">Student ID</label>
+            <input class="form-input" id="regId" placeholder="e.g. STU001" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-input" id="regName" placeholder="e.g. Rahul Sharma" />
+          </div>
+          <div class="mode-toggle" role="tablist" aria-label="Registration mode">
+            <button type="button" class="mode-pill active" id="modeNewBtn" onclick="setMode('new')">➕ New student</button>
+            <button type="button" class="mode-pill secondary" id="modeExistingBtn" onclick="setMode('existing')">🖼 Add more images</button>
+          </div>
+          <div id="lookupPanel" style="display:none;">
+            <div class="form-group" style="margin-bottom:8px;">
+              <label class="form-label">Find existing student</label>
+              <div class="lookup-row">
+                <select class="form-input" id="regSearchMode" style="max-width:120px;">
+                  <option value="name">By name</option>
+                  <option value="id">By ID</option>
+                </select>
+                <input class="form-input" id="regSearchInput" placeholder="Search student" />
+                <button class="btn btn-secondary btn-sm" type="button" onclick="searchStudent()">Search</button>
+              </div>
+              <div class="lookup-results" id="lookupResults"></div>
+            </div>
+            <div class="form-group" style="margin-bottom:10px;">
+              <label class="form-label">Auto-detect from camera</label>
+              <button class="btn btn-secondary btn-sm" id="autoDetectBtn" type="button" onclick="runAutoDetect()">🔎 Fetch face</button>
+              <div id="autoDetectStatus" style="margin-top:6px;font-size:11px;color:var(--muted);">Position the ROI over a face and click Fetch.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Capture Count</label>
+            <select class="form-input" id="regCount">
+              <option value="5">5 images</option>
+              <option value="10" selected>10 images</option>
+              <option value="15">15 images</option>
+              <option value="20">20 images</option>
+              <option value="25">25 images</option>
+              <option value="30">30 images</option>
+            </select>
+          </div>
+          <div style="margin-top:8px;margin-bottom:4px;font-size:11.5px;color:var(--muted);" id="captureStatus">
+            Fill in details, then click Start Capture.
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="captureBar" style="width:0%"></div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:14px;font-family:'DM Mono',monospace;" id="captureCount">0 / 10 captured</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" id="captureBtn" onclick="startCapture()" style="flex:1;">📸 Start Capture</button>
+            <button class="btn btn-danger" id="cancelCaptureBtn" onclick="cancelCapture()">✕ Cancel</button>
+          </div>
+        </div>
+        <div class="capture-preview">
+          <div class="card-header">Camera Preview</div>
+          <div class="reg-preview-wrap" id="regPreviewWrap">
+            <img id="regFeed" src="/video_feed" style="width:100%;display:block;">
+            <div class="roi-box" id="roiBox">
+              <div class="roi-label">Drag to position</div>
+              <div class="roi-handle" id="roiHandle"></div>
+            </div>
+          </div>
+          <div style="padding:10px 14px;font-size:11px;color:var(--muted);">
+            Drag and resize the green box around the face you want to register.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Students ── -->
+    <div class="page" id="page-students">
+      <div class="page-header">
+        <div><div class="page-heading">Registered Students</div><div class="page-sub" id="studentSubtitle">Loading...</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="loadStudents()">🔄 Refresh</button>
+        </div>
+      </div>
+      <div class="students-grid" id="studentsGrid"></div>
+    </div>
+
+    <!-- ── Unknown ── -->
+    <div class="page" id="page-unknown">
+      <div class="page-header">
+        <div><div class="page-heading">Unknown Faces</div><div class="page-sub">Auto-saved during monitoring</div></div>
+          <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="loadUnknown()">🔄 Refresh</button>
+          <button class="btn btn-danger" onclick="clearAllUnknown()">🗑 Clear All</button>
+        </div>
+      </div>
+      <div id="unknownTrainToolbar" class="unknown-train-toolbar" style="display:none;">
+        <div class="unknown-train-summary" id="unknownTrainSummary">Select faces to add to a student.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="cancelTrainFromUnknowns()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="confirmTrainFromUnknowns()">Add & Retrain</button>
+        </div>
+      </div>
+      <div class="promote-panel" id="promotePanel">
+        <div style="font-weight:600;">Register Unknown Face</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;" id="promoteTitle">Select a student to register this unknown face</div>
+        <div class="promote-list" id="promoteList"></div>
+      </div>
+      <div class="unknown-grid" id="unknownGrid"></div>
+    </div>
+
+    <!-- ── Sessions ── -->
+    <div class="page" id="page-sessions">
+      <div class="page-header">
+        <div><div class="page-heading">Attendance Sessions</div><div class="page-sub">Click a session to view details</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" onclick="loadSessions()">🔄 Refresh</button>
+        </div>
+      </div>
+      <div class="sessions-list" id="sessionsList"></div>
+    </div>
+
+    <!-- ── Settings ── -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <div><div class="page-heading">Settings</div><div class="page-sub">Tune recognition and capture behavior</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <div class="setting-card">
+          <div class="setting-label">Confidence Threshold</div>
+          <div class="setting-desc">Lower = stricter. Range 40–100. Default 70.</div>
+          <input class="setting-input" id="settingConf" type="number" min="30" max="100">
+        </div>
+        <div class="setting-card">
+          <div class="setting-label">Attendance Cooldown (sec)</div>
+          <div class="setting-desc">Seconds before re-logging the same student.</div>
+          <input class="setting-input" id="settingCooldown" type="number" min="5" max="300">
+        </div>
+        <div class="setting-card">
+          <div class="setting-label">Capture Count</div>
+          <div class="setting-desc">Photos captured per student during registration.</div>
+          <input class="setting-input" id="settingCapture" type="number" min="5" max="50">
+        </div>
+        <div class="setting-card">
+          <div class="setting-label">Unknown Save Cooldown (sec)</div>
+          <div class="setting-desc">Delay between saving the same unknown face.</div>
+          <input class="setting-input" id="settingUnkCooldown" type="number" min="3" max="120">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Train from Unknowns Modal -->
+<div class="modal-backdrop" id="trainUnknownModal">
+  <div class="modal wide">
+    <div class="modal-title">Train from Unknowns</div>
+    <div class="modal-sub">Select a registered student first. After that, you can choose the unknown faces directly from the Unknown section.</div>
+
+    <div id="trainUnknownStep1">
+      <div style="font-weight:600;margin-bottom:8px;">Select Student</div>
+      <div id="trainStudentList" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('trainUnknownModal')">Cancel</button>
+        <button class="btn btn-primary" id="trainContinueBtn" onclick="startTrainFromUnknowns()" disabled>Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Session Detail Modal -->
+<div class="modal-backdrop" id="sessionModal">
+  <div class="modal wide">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <div class="modal-title" id="sessionModalTitle"></div>
+        <div style="font-size:11px;color:var(--muted);" id="sessionModalMeta"></div>
+      </div>
+      <button class="btn btn-secondary btn-sm" id="exportBtn" onclick="exportSession()">⬇ Export CSV</button>
+    </div>
+    <div id="sessionModalBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('sessionModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let currentPage = 'monitor';
+let logItems = [];
+let captureInterval = null;
+let captureTarget = 10;
+let registrationMode = 'new';
+let pendingAutoStudent = null;
+let unknownRegisterEnabled = true;
+const unknownRegisterStorageKey = 'proctorUnknownRegisterEnabled';
+let roiSelection = {x: 0.22, y: 0.20, w: 0.28, h: 0.40};
+let roiInteraction = null;
+let currentPromoteFile = null;
+let currentSessionId = null;
+let promoteStudentList = [];
+let trainSelectedStudent = null;
+let trainSelectedUnknowns = [];
+let trainUnknownList = [];
+let isTrainModeActive = false;
+let sessionStartTime = null;
+
+const pageTitles = {
+  monitor: 'Live Monitor', register: 'Register Student',
+  students: 'Students', unknown: 'Unknown Faces',
+  sessions: 'Sessions', settings: 'Settings'
+};
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes(name)) n.classList.add('active');
+  });
+  document.getElementById('topbarTitle').textContent = pageTitles[name];
+  currentPage = name;
+  if (name === 'students') loadStudents();
+  if (name === 'unknown') loadUnknown();
+  if (name === 'sessions') loadSessions();
+  if (name === 'settings') loadSettings();
+}
+
+// ─── Clock ────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clockEl').textContent =
+    now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── Status polling ───────────────────────────────────────────────────────────
+async function pollStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const d = await res.json();
+
+    document.getElementById('faceCount').textContent = d.face_count;
+    document.getElementById('topFaces').textContent = d.face_count;
+    document.getElementById('topStudents').textContent = d.student_count;
+    document.getElementById('topUnknown').textContent = d.unknown_count;
+    document.getElementById('studentCountBadge').textContent = d.student_count;
+
+    const unkBadge = document.getElementById('unknownBadge');
+    if (d.unknown_count > 0) {
+      unkBadge.textContent = d.unknown_count;
+      unkBadge.style.display = 'inline-block';
+    } else {
+      unkBadge.style.display = 'none';
+    }
+
+    // Session chip
+    const chip = document.getElementById('sidebarSession');
+    const startUI = document.getElementById('sessionStartUI');
+    const activeUI = document.getElementById('sessionActiveUI');
+    if (d.active_session) {
+      chip.innerHTML = `<span class="dot active"></span>${d.active_session.name}`;
+      startUI.style.display = 'none';
+      activeUI.style.display = 'block';
+      document.getElementById('activeSessionName').textContent = d.active_session.name;
+      if (!sessionStartTime) sessionStartTime = Date.now();
+      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const m = Math.floor(elapsed/60), s = elapsed%60;
+      document.getElementById('sessionDuration').textContent = `Running for ${m}m ${s}s`;
+    } else {
+      chip.innerHTML = `<span class="dot"></span>No session`;
+      startUI.style.display = 'block';
+      activeUI.style.display = 'none';
+      sessionStartTime = null;
+    }
+
+    // Update log
+    if (d.recent_detections && d.recent_detections.length) {
+      updateLog(d.recent_detections);
+    }
+  } catch(e) {}
+}
+
+setInterval(pollStatus, 1500);
+pollStatus();
+initUnknownRegisterState();
+
+// ─── Log ──────────────────────────────────────────────────────────────────────
+let lastLogHash = '';
+function updateLog(detections) {
+  const hash = detections.map(d=>d.time+d.id).join('|');
+  if (hash === lastLogHash) return;
+  lastLogHash = hash;
+
+  const list = document.getElementById('logList');
+  list.innerHTML = '';
+  if (!detections.length) {
+    list.innerHTML = '<div class="empty-state" style="padding:30px 10px;"><div class="empty-icon">👁</div><div>Detections appear here</div></div>';
+    return;
+  }
+  detections.forEach(d => {
+    const div = document.createElement('div');
+    div.className = 'log-item ' + (d.known ? 'known' : 'unknown');
+    const initials = d.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    div.innerHTML = `
+      <div class="log-avatar ${d.known ? 'known' : 'unknown'}">
+        ${d.known && d.id !== 'unknown'
+          ? `<img src="/api/students/${d.id}/photo" onerror="this.parentElement.textContent='${initials}'">`
+          : (d.known ? initials : '?')}
+      </div>
+      <div>
+        <div class="log-name">${d.name}</div>
+        <div class="log-id">${d.id}</div>
+      </div>
+      <div class="log-time">${d.time}</div>`;
+    list.appendChild(div);
+  });
+}
+
+function clearLog() {
+  lastLogHash = '';
+  document.getElementById('logList').innerHTML =
+    '<div class="empty-state" style="padding:30px 10px;"><div class="empty-icon">👁</div><div>Detections appear here</div></div>';
+}
+
+// ─── Session ──────────────────────────────────────────────────────────────────
+async function startSession() {
+  const name = document.getElementById('sessionNameInput').value.trim() ||
+    `Class ${new Date().toLocaleString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}`;
+  await fetch('/api/sessions/start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name})});
+  sessionStartTime = Date.now();
+  toast('Session started: ' + name, 'success');
+  pollStatus();
+}
+
+async function endSession() {
+  await fetch('/api/sessions/end', {method:'POST'});
+  sessionStartTime = null;
+  toast('Session ended', 'info');
+  pollStatus();
+}
+
+// ─── Registration ─────────────────────────────────────────────────────────────
+function setMode(mode) {
+  registrationMode = mode;
+  const lookupPanel = document.getElementById('lookupPanel');
+  lookupPanel.style.display = mode === 'existing' ? 'block' : 'none';
+  document.getElementById('modeNewBtn').classList.toggle('active', mode === 'new');
+  document.getElementById('modeExistingBtn').classList.toggle('active', mode === 'existing');
+  document.getElementById('captureStatus').textContent = mode === 'existing'
+    ? 'Add more samples for an existing student.'
+    : 'Fill in details, then click Start Capture.';
+}
+
+async function searchStudent() {
+  const query = document.getElementById('regSearchInput').value.trim();
+  const mode = document.getElementById('regSearchMode').value;
+  const resultsBox = document.getElementById('lookupResults');
+  if (!query) {
+    resultsBox.style.display = 'none';
+    return;
+  }
+  const res = await fetch(`/api/register/search?query=${encodeURIComponent(query)}&mode=${mode}`);
+  const d = await res.json();
+  if (!d.results.length) {
+    resultsBox.innerHTML = '<div class="lookup-item">No matching students found</div>';
+    resultsBox.style.display = 'block';
+    return;
+  }
+  resultsBox.innerHTML = d.results.map(item => `<div class="lookup-item" onclick="selectStudent('${item.id}', '${item.name.replace(/'/g, "\\'")}')">${item.name} — ${item.id}</div>`).join('');
+  resultsBox.style.display = 'block';
+}
+
+function selectStudent(id, name) {
+  document.getElementById('regId').value = id;
+  document.getElementById('regName').value = name;
+  pendingAutoStudent = null;
+  document.getElementById('lookupResults').style.display = 'none';
+}
+
+async function runAutoDetect() {
+  const btn = document.getElementById('autoDetectBtn');
+  const status = document.getElementById('autoDetectStatus');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Fetching...';
+  }
+  if (status) status.textContent = 'Checking the selected face...';
+
+  pendingAutoStudent = null;
+  let lastMessage = 'No known face matched yet';
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const res = await fetch('/api/register/auto_detect', {method:'POST'});
+      const d = await res.json();
+      if (d.ok && d.recognized) {
+        pendingAutoStudent = d.student;
+        document.getElementById('regId').value = d.student.id;
+        document.getElementById('regName').value = d.student.name;
+        if (status) status.textContent = `Matched ${d.student.name} (${d.student.confidence}%)`;
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '🔎 Fetch face';
+        }
+        toast(`Matched ${d.student.name}`, 'success');
+        return;
+      }
+      lastMessage = d.message || d.error || 'No known face matched yet';
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    } catch (e) {
+      lastMessage = 'Detection request failed';
+      break;
+    }
+  }
+
+  if (status) status.textContent = lastMessage;
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🔎 Fetch face';
+  }
+
+  if (lastMessage === 'Detection request failed') {
+    toast(lastMessage, 'error');
+  } else {
+    toast(lastMessage, 'info');
+  }
+}
+
+function updateRoiBox() {
+  const wrap = document.getElementById('regPreviewWrap');
+  const box = document.getElementById('roiBox');
+  if (!wrap || !box) return;
+  const width = wrap.clientWidth || 320;
+  const height = wrap.clientHeight || 240;
+  const left = Math.max(0, Math.min(1, roiSelection.x)) * width;
+  const top = Math.max(0, Math.min(1, roiSelection.y)) * height;
+  const boxWidth = Math.max(40, Math.min(width, roiSelection.w * width));
+  const boxHeight = Math.max(40, Math.min(height, roiSelection.h * height));
+  box.style.left = `${left}px`;
+  box.style.top = `${top}px`;
+  box.style.width = `${boxWidth}px`;
+  box.style.height = `${boxHeight}px`;
+}
+
+function startRoiInteraction(evt) {
+  const box = document.getElementById('roiBox');
+  if (!box) return;
+  evt.preventDefault();
+  roiInteraction = {
+    mode: evt.target.id === 'roiHandle' ? 'resize' : 'move',
+    startX: evt.clientX,
+    startY: evt.clientY,
+    startSelection: { ...roiSelection }
+  };
+  if (roiInteraction.mode === 'move') {
+    box.style.cursor = 'grabbing';
+  } else {
+    box.style.cursor = 'nwse-resize';
+  }
+}
+
+function moveRoi(evt) {
+  if (!roiInteraction) return;
+  const wrap = document.getElementById('regPreviewWrap');
+  const rect = wrap.getBoundingClientRect();
+  const dx = (evt.clientX - roiInteraction.startX) / rect.width;
+  const dy = (evt.clientY - roiInteraction.startY) / rect.height;
+  if (roiInteraction.mode === 'move') {
+    roiSelection.x = Math.max(0, Math.min(1 - roiSelection.w, roiInteraction.startSelection.x + dx));
+    roiSelection.y = Math.max(0, Math.min(1 - roiSelection.h, roiInteraction.startSelection.y + dy));
+  } else {
+    roiSelection.w = Math.max(0.12, Math.min(0.8, roiInteraction.startSelection.w + dx));
+    roiSelection.h = Math.max(0.12, Math.min(0.8, roiInteraction.startSelection.h + dy));
+  }
+  updateRoiBox();
+}
+
+function endRoiInteraction() {
+  roiInteraction = null;
+  const box = document.getElementById('roiBox');
+  if (box) box.style.cursor = 'move';
+}
+
+window.addEventListener('resize', updateRoiBox);
+setTimeout(updateRoiBox, 200);
+
+document.getElementById('roiBox').addEventListener('pointerdown', startRoiInteraction);
+document.getElementById('roiHandle').addEventListener('pointerdown', startRoiInteraction);
+window.addEventListener('pointermove', moveRoi);
+window.addEventListener('pointerup', endRoiInteraction);
+
+async function startCapture() {
+  const id = document.getElementById('regId').value.trim();
+  const name = document.getElementById('regName').value.trim();
+  const target = parseInt(document.getElementById('regCount').value, 10) || 10;
+  const autoDetect = registrationMode === 'existing' && !!pendingAutoStudent;
+  if (!id || !name) { toast('Enter Student ID and Name', 'error'); return; }
+
+  const res = await fetch('/api/register/start', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id, name, mode: registrationMode, target, auto_detect: autoDetect, roi: roiSelection})
+  });
+  const d = await res.json();
+  if (!d.ok) { toast(d.error, 'error'); return; }
+
+  captureTarget = d.target;
+  if (registrationMode === 'existing' && autoDetect) {
+    document.getElementById('captureStatus').textContent = 'Auto-detected student loaded — ready to capture more images.';
+  }
+  document.getElementById('captureBtn').disabled = true;
+  document.getElementById('captureBtn').textContent = '⏳ Capturing...';
+  document.getElementById('captureStatus').textContent = registrationMode === 'existing'
+    ? 'Adding samples to existing student...'
+    : 'Look at the camera, stay still...';
+
+  captureInterval = setInterval(() => pollCapture(id, name), 500);
+}
+
+async function pollCapture(id, name) {
+  const res = await fetch('/api/register/status');
+  const d = await res.json();
+  const pct = (d.captured / d.target) * 100;
+  document.getElementById('captureBar').style.width = pct + '%';
+  document.getElementById('captureCount').textContent = `${d.captured} / ${d.target} captured`;
+
+  if (d.face_count === 0) {
+    document.getElementById('captureStatus').textContent = '⚠ No face detected — face the camera';
+  } else if (d.face_count > 1) {
+    document.getElementById('captureStatus').textContent = '⚠ Multiple faces detected — only one person';
+  } else if (d.mode === 'existing' && d.auto_detect_enabled && d.detected_student) {
+    document.getElementById('captureStatus').textContent = `✓ Matched ${d.detected_student.name} (${d.detected_student.confidence}%)`; 
+  } else {
+    document.getElementById('captureStatus').textContent = `✓ Capturing ${d.captured}/${d.target}...`;
+  }
+
+  if (d.captured >= d.target) {
+    clearInterval(captureInterval);
+    document.getElementById('captureStatus').textContent = 'Saving and training model...';
+    const res2 = await fetch('/api/register/finish', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id, name, mode: registrationMode})
+    });
+    const d2 = await res2.json();
+    if (d2.ok) {
+      const action = registrationMode === 'existing' ? 'images added successfully' : 'registered successfully';
+      toast(`${name} ${action}!`, 'success');
+      resetCapture();
+      showPage('students');
+    } else {
+      toast('Registration failed', 'error');
+      resetCapture();
+    }
+  }
+}
+
+function cancelCapture() {
+  clearInterval(captureInterval);
+  fetch('/api/register/cancel', {method:'POST'});
+  resetCapture();
+}
+
+function resetCapture() {
+  clearInterval(captureInterval);
+  fetch('/api/register/cancel', {method:'POST'});
+  document.getElementById('regId').value = '';
+  document.getElementById('regName').value = '';
+  document.getElementById('regSearchInput').value = '';
+  document.getElementById('lookupResults').style.display = 'none';
+  document.getElementById('regCount').value = '10';
+  const confirmBtn = document.getElementById('confirmAutoDetectBtn');
+  if (confirmBtn) confirmBtn.style.display = 'none';
+  pendingAutoStudent = null;
+  roiSelection = {x: 0.22, y: 0.20, w: 0.28, h: 0.40};
+  updateRoiBox();
+  document.getElementById('captureBar').style.width = '0%';
+  document.getElementById('captureCount').textContent = '0 / 10 captured';
+  document.getElementById('captureStatus').textContent = 'Fill in details, then click Start Capture.';
+  document.getElementById('captureBtn').disabled = false;
+  document.getElementById('captureBtn').textContent = '📸 Start Capture';
+  setMode('new');
+}
+
+// ─── Students ────────────────────────────────────────────────────────────────
+async function loadStudents() {
+  const res = await fetch('/api/students');
+  const students = await res.json();
+  const grid = document.getElementById('studentsGrid');
+  document.getElementById('studentSubtitle').textContent = `${students.length} student${students.length!==1?'s':''} registered`;
+
+  if (!students.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div>No students registered yet</div></div>';
+    return;
+  }
+
+  grid.innerHTML = students.map(s => {
+    const initials = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="student-card">
+      <button class="student-del" onclick="deleteStudent('${s.id}','${s.name}')">✕</button>
+      <div class="student-avatar">
+        ${s.has_photo
+          ? `<img src="/api/students/${s.id}/photo" onerror="this.parentElement.textContent='${initials}'">`
+          : initials}
+      </div>
+      <div class="student-name">${s.name}</div>
+      <div class="student-id">${s.id}</div>
+      <div class="student-date">${s.registered.slice(0,10)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteStudent(id, name) {
+  if (!confirm(`Delete student "${name}"?`)) return;
+  await fetch(`/api/students/${id}`, {method:'DELETE'});
+  toast(`${name} deleted`, 'info');
+  loadStudents();
+}
+
+// ─── Unknown ─────────────────────────────────────────────────────────────────
+async function loadUnknown() {
+  const res = await fetch('/api/unknown');
+  const files = await res.json();
+  const grid = document.getElementById('unknownGrid');
+  trainUnknownList = files;
+
+  if (!files.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div>No unknown faces saved</div></div>';
+    updateTrainToolbar();
+    return;
+  }
+
+  grid.innerHTML = files.map(f => {
+    const selected = trainSelectedUnknowns.includes(f);
+    const trainModeClass = isTrainModeActive ? 'train-mode' : '';
+    const selectedClass = isTrainModeActive && selected ? 'selected' : '';
+    return `
+      <div class="unknown-card ${trainModeClass} ${selectedClass}" id="unk-${f.replace(/\./g,'_')}">
+        ${isTrainModeActive ? `<label class="unknown-check"><input type="checkbox" ${selected ? 'checked' : ''} onchange="toggleTrainUnknown('${f}', this.checked)"></label>` : ''}
+        <img class="unknown-img" src="/api/unknown/${f}/image" onerror="this.src=''">
+        <div class="unknown-info">
+          <div class="unknown-filename">${f.replace('unknown_','').replace('.jpg','')}</div>
+          <div class="unknown-actions">
+            <button class="btn btn-danger btn-sm" onclick="deleteUnknown('${f}')">✕</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  updateTrainToolbar();
+}
+
+function applyUnknownRegisterState(enabled) {
+  unknownRegisterEnabled = enabled;
+  const pill = document.getElementById('unknownRegisterToggle');
+  const dot = document.getElementById('unknownRegisterDot');
+  const text = document.getElementById('unknownRegisterText');
+  if (pill) pill.classList.toggle('active', unknownRegisterEnabled);
+  if (dot) dot.textContent = unknownRegisterEnabled ? '●' : '○';
+  if (text) text.textContent = unknownRegisterEnabled ? 'Unknown register on' : 'Unknown register off';
+  if (typeof loadUnknown === 'function' && document.getElementById('unknownGrid')) loadUnknown();
+}
+
+async function syncUnknownSaveState(enabled) {
+  try {
+    await fetch('/api/unknown/saving', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({enabled})
+    });
+  } catch (e) {}
+}
+
+function initUnknownRegisterState() {
+  try {
+    const stored = localStorage.getItem(unknownRegisterStorageKey);
+    if (stored !== null) {
+      unknownRegisterEnabled = stored === 'true';
+    }
+  } catch (e) {}
+  applyUnknownRegisterState(unknownRegisterEnabled);
+  syncUnknownSaveState(unknownRegisterEnabled);
+}
+
+function toggleUnknownRegister() {
+  const nextState = !unknownRegisterEnabled;
+  applyUnknownRegisterState(nextState);
+  try {
+    localStorage.setItem(unknownRegisterStorageKey, String(nextState));
+  } catch (e) {}
+  syncUnknownSaveState(nextState);
+  toast(nextState ? 'Unknown registration enabled' : 'Unknown registration disabled', 'info');
+}
+
+async function openPromote(filename) {
+  currentPromoteFile = filename;
+  const panel = document.getElementById('promotePanel');
+  const list = document.getElementById('promoteList');
+  const title = document.getElementById('promoteTitle');
+  if (!panel || !list || !title) return;
+
+  title.textContent = 'Select a student to register this unknown face';
+  list.innerHTML = '<div style="font-size:12px;color:var(--muted);">Loading students...</div>';
+  panel.classList.add('open');
+
+  const res = await fetch('/api/students');
+  const students = await res.json();
+  promoteStudentList = students;
+  if (!students.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--muted);">No students registered yet.</div>';
+    return;
+  }
+
+  list.innerHTML = students.map(s => `
+    <div class="promote-item" onclick="confirmPromote('${s.id}', '${s.name.replace(/'/g, "\\'")}')">
+      <div>
+        <div style="font-weight:600;">${s.name}</div>
+        <div style="font-size:11px;color:var(--muted);">${s.id}</div>
+      </div>
+      <button class="btn btn-primary btn-sm">Use</button>
+    </div>`).join('');
+}
+
+async function confirmPromote(id, name) {
+  if (!id || !name) { toast('Select a student', 'error'); return; }
+  const res = await fetch(`/api/unknown/${currentPromoteFile}/promote`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, name})
+  });
+  const d = await res.json();
+  document.getElementById('promotePanel').classList.remove('open');
+  if (d.ok) { toast(`${name} registered!`, 'success'); loadUnknown(); }
+  else toast('Registration failed', 'error');
+}
+
+async function deleteUnknown(filename) {
+  await fetch(`/api/unknown/${filename}`, {method:'DELETE'});
+  loadUnknown();
+}
+
+async function clearAllUnknown() {
+  if (!confirm('Delete all unknown face images?')) return;
+  await fetch('/api/unknown/clear', {method:'POST'});
+  toast('Unknown faces cleared', 'info');
+  loadUnknown();
+}
+
+async function openTrainFromUnknowns() {
+  const list = document.getElementById('trainStudentList');
+  const continueBtn = document.getElementById('trainContinueBtn');
+  if (!list || !continueBtn) return;
+
+  trainSelectedStudent = null;
+  trainSelectedUnknowns = [];
+  trainUnknownList = [];
+  continueBtn.disabled = true;
+  list.innerHTML = '<div style="font-size:12px;color:var(--muted);">Loading students...</div>';
+  openModal('trainUnknownModal');
+
+  const res = await fetch('/api/students');
+  const students = await res.json();
+  if (!students.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--muted);">No registered students found.</div>';
+    return;
+  }
+
+  list.innerHTML = students.map(s => `
+    <label class="promote-item" style="cursor:pointer;">
+      <div>
+        <div style="font-weight:600;">${s.name}</div>
+        <div style="font-size:11px;color:var(--muted);">ID: ${s.id}</div>
+      </div>
+      <input type="radio" name="trainStudent" value="${s.id}" onchange="selectTrainStudent('${s.id}', '${s.name.replace(/'/g, "\\'")}')">
+    </label>`).join('');
+}
+
+function selectTrainStudent(id, name) {
+  trainSelectedStudent = {id, name};
+  document.getElementById('trainContinueBtn').disabled = false;
+}
+
+function startTrainFromUnknowns() {
+  if (!trainSelectedStudent) {
+    toast('Select a student first', 'error');
+    return;
+  }
+  closeModal('trainUnknownModal');
+  isTrainModeActive = true;
+  trainSelectedUnknowns = [];
+  trainUnknownList = [];
+  showPage('unknown');
+  toast(`Select unknown faces for ${trainSelectedStudent.name}`, 'info');
+}
+
+function toggleTrainUnknown(filename, checked) {
+  if (checked) {
+    if (!trainSelectedUnknowns.includes(filename)) trainSelectedUnknowns.push(filename);
+  } else {
+    trainSelectedUnknowns = trainSelectedUnknowns.filter(f => f !== filename);
+  }
+  updateTrainToolbar();
+}
+
+function updateTrainToolbar() {
+  const toolbar = document.getElementById('unknownTrainToolbar');
+  const summary = document.getElementById('unknownTrainSummary');
+  if (!toolbar || !summary) return;
+  toolbar.style.display = isTrainModeActive ? 'flex' : 'none';
+  if (!isTrainModeActive) return;
+  const target = trainSelectedStudent ? `${trainSelectedStudent.name} (${trainSelectedStudent.id})` : 'your selected student';
+  summary.innerHTML = trainSelectedUnknowns.length
+    ? `Selected ${trainSelectedUnknowns.length} face${trainSelectedUnknowns.length !== 1 ? 's' : ''} for <strong>${target}</strong>`
+    : `Select faces to add to <strong>${target}</strong>`;
+}
+
+function cancelTrainFromUnknowns() {
+  isTrainModeActive = false;
+  trainSelectedUnknowns = [];
+  trainUnknownList = [];
+  updateTrainToolbar();
+  loadUnknown();
+}
+
+async function confirmTrainFromUnknowns() {
+  if (!trainSelectedStudent) {
+    toast('Select a student first', 'error');
+    return;
+  }
+  if (!trainSelectedUnknowns.length) {
+    toast('Select at least one unknown image', 'error');
+    return;
+  }
+  const msg = `You are about to add ${trainSelectedUnknowns.length} unknown face image${trainSelectedUnknowns.length !== 1 ? 's' : ''} to ${trainSelectedStudent.name} (ID: ${trainSelectedStudent.id}) and retrain the face-recognition model. Continue?`;
+  if (!confirm(msg)) return;
+
+  const res = await fetch('/api/unknown/train', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({student_id: trainSelectedStudent.id, filenames: trainSelectedUnknowns})
+  });
+  const d = await res.json();
+  if (d.ok) {
+    isTrainModeActive = false;
+    trainSelectedUnknowns = [];
+    updateTrainToolbar();
+    toast(`Training complete. Added ${d.added} image${d.added !== 1 ? 's' : ''}.`, 'success');
+    loadUnknown();
+    loadStudents();
+  } else {
+    toast(d.error || 'Training failed', 'error');
+  }
+}
+
+// ─── Sessions ────────────────────────────────────────────────────────────────
+async function loadSessions() {
+  const res = await fetch('/api/sessions');
+  const sessions = await res.json();
+  const list = document.getElementById('sessionsList');
+
+  if (!sessions.length) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div>No sessions yet</div></div>';
+    return;
+  }
+
+  list.innerHTML = sessions.map(s => {
+    const absent = s.total - s.present;
+    const date = new Date(s.started).toLocaleString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<div class="session-row ${s.active ? 'active-session' : ''}" onclick="viewSession('${s.id}')">
+      <div>
+        <div class="session-row-name">${s.name} ${s.active ? '<span style="font-size:10px;color:var(--green);">● LIVE</span>' : ''}</div>
+        <div class="session-row-meta">${date}${s.ended ? ' — '+new Date(s.ended).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : ''}</div>
+      </div>
+      <div class="session-row-stats">
+        <div class="stat-block"><div class="val green">${s.present}</div><div class="lbl">Present</div></div>
+        <div class="stat-block"><div class="val red">${absent}</div><div class="lbl">Absent</div></div>
+        <div class="stat-block"><div class="val">${s.total}</div><div class="lbl">Total</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function viewSession(id) {
+  currentSessionId = id;
+  const res = await fetch(`/api/sessions/${id}`);
+  const d = await res.json();
+  document.getElementById('sessionModalTitle').textContent = d.name;
+  const start = new Date(d.started).toLocaleString('en-IN');
+  const end = d.ended ? new Date(d.ended).toLocaleString('en-IN') : 'Ongoing';
+  document.getElementById('sessionModalMeta').textContent = `${start} → ${end}`;
+
+  const rows = d.students.map(s => `
+    <tr>
+      <td>${s.id}</td>
+      <td>${s.name}</td>
+      <td>${s.present ? '<span class="present-badge">Present</span>' : '<span class="absent-badge">Absent</span>'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);">${s.first_seen ? s.first_seen.slice(11,19) : '—'}</td>
+      <td style="font-family:'DM Mono',monospace;">${s.count}</td>
+    </tr>`).join('');
+
+  document.getElementById('sessionModalBody').innerHTML = `
+    <table class="attendance-table">
+      <thead><tr><th>ID</th><th>Name</th><th>Status</th><th>First Seen</th><th>Detections</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  document.getElementById('sessionModal').classList.add('open');
+}
+
+function exportSession() {
+  window.open(`/api/sessions/${currentSessionId}/export`);
+}
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  const res = await fetch('/api/settings');
+  const d = await res.json();
+  document.getElementById('settingConf').value = d.confidence_threshold;
+  document.getElementById('settingCooldown').value = d.cooldown_sec;
+  document.getElementById('settingCapture').value = d.capture_count;
+  document.getElementById('settingUnkCooldown').value = d.unknown_cooldown_sec;
+  captureTarget = d.capture_count;
+}
+
+async function saveSettings() {
+  const body = {
+    confidence_threshold: parseInt(document.getElementById('settingConf').value),
+    cooldown_sec: parseInt(document.getElementById('settingCooldown').value),
+    capture_count: parseInt(document.getElementById('settingCapture').value),
+    unknown_cooldown_sec: parseInt(document.getElementById('settingUnkCooldown').value)
+  };
+  await fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  captureTarget = body.capture_count;
+  toast('Settings saved', 'success');
+}
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+document.querySelectorAll('.modal-backdrop').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function toast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+</body>
+</html>

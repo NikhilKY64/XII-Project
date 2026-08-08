@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Project data and generated files
+ProctorV2/data/
+ProctorV2/data/**
+data/
+*.pkl
+*.yml
+*.yaml
+*.json
+
+# IDE/editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
